@@ -20,6 +20,9 @@ resource "tfe_workspace" "app_workspace" {
   working_directory     = ""
 
   tag_names = ["app:${each.key}", "env:dev", "managed-by:subscription-vending"]
+
+  # CRITICAL: Wait for the GitHub repo to be created first
+  depends_on = [github_repository.app_repo]
 }
 
 # Set workspace variables
