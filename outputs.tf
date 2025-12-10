@@ -4,7 +4,7 @@ output "github_repos" {
     for app_id, repo in github_repository.app_repo : app_id => {
       name     = repo.name
       url      = repo.html_url
-      clone    = repo.clone_url
+      clone    = repo.http_clone_url
     }
   }
 }
