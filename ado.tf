@@ -2,7 +2,7 @@
 resource "azuredevops_project" "app_project" {
   for_each = local.subscriptions
 
-  name               = "${each.key}n1"
+  name               = "${each.key}"
   description        = "DevOps project for ${each.key} - Owner: ${each.value.owner_email}"
   visibility         = "private"
   version_control    = "Git"
