@@ -31,43 +31,66 @@ resource "github_repository" "app_repo" {
 }
 
 # -----------------------------------------------------------------------------
-# Branch Protection Rules for Main Branch
+# Repository Ruleset for Main Branch (Replaces branch_protection)
 # -----------------------------------------------------------------------------
-resource "github_branch_protection" "main" {
+# Rulesets provide more granular control than branch protection, including
+# the ability to allow admins to bypass via PR only (not direct push).
+# -----------------------------------------------------------------------------
+resource "github_repository_ruleset" "main" {
   for_each = local.subscriptions
 
-  repository_id = github_repository.app_repo[each.key].node_id
-  pattern       = "main"
+  name        = "main-branch-protection"
+  repository  = github_repository.app_repo[each.key].name
+  target      = "branch"
+  enforcement = "active"
 
-  # Require pull request before merging
-  required_pull_request_reviews {
-    dismiss_stale_reviews           = true
-    require_code_owner_reviews      = false
-    required_approving_review_count = 1
-    require_last_push_approval      = false
+  # Apply to the default branch (main)
+  conditions {
+    ref_name {
+      include = ["~DEFAULT_BRANCH"]
+      exclude = []
+    }
   }
 
-  # Require status checks to pass before merging
-  required_status_checks {
-    strict   = true
-    contexts = [
-      "QualityGates / TerraformFormat",
-      "QualityGates / TerraformValidate",
-      "QualityGates / TFLint"
-    ]
+  # Allow organization admins to bypass, but ONLY via pull request
+  # This prevents direct commits while still allowing emergency merges
+  bypass_actors {
+    actor_id    = 1
+    actor_type  = "OrganizationAdmin"
+    bypass_mode = "pull_request"
   }
 
-  # Enforce rules for administrators too
-  enforce_admins = false
+  rules {
+    # Require pull request before merging
+    pull_request {
+      required_approving_review_count   = 1
+      dismiss_stale_reviews_on_push     = true
+      require_code_owner_review         = false
+      require_last_push_approval        = false
+      required_review_thread_resolution = false
+    }
 
-  # Prevent force pushes and branch deletion
-  allows_force_pushes = false
-  allows_deletions    = false
+    # Require status checks to pass
+    required_status_checks {
+      strict_required_status_checks_policy = true
 
-  # Allow specific actors to bypass (optional - for automation)
-  # restrict_pushes {
-  #   push_allowances = []
-  # }
+      required_check {
+        context = "QualityGates / TerraformFormat"
+      }
+      required_check {
+        context = "QualityGates / TerraformValidate"
+      }
+      required_check {
+        context = "QualityGates / TFLint"
+      }
+    }
+
+    # Prevent force pushes (protects git history)
+    non_fast_forward = true
+
+    # Prevent branch deletion
+    deletion = true
+  }
 
   depends_on = [github_repository.app_repo]
 }
@@ -142,13 +165,14 @@ Then open a Pull Request in GitHub.
 
 ---
 
-## Branch Protection
+## Branch Protection (via Ruleset)
 
 The `main` branch is protected with the following rules:
 - **Pull Request Required** - No direct commits to main
 - **1 Approval Required** - At least one reviewer must approve
 - **Status Checks Must Pass** - CI pipeline must succeed
 - **No Force Push** - History cannot be rewritten
+- **Admin Bypass** - Admins can bypass via PR only (not direct push)
 
 ---
 
@@ -156,27 +180,27 @@ The `main` branch is protected with the following rules:
 
 ```
 .
-├── main.tf              # Primary infrastructure (start here)
-├── variables.tf         # Input variables
-├── locals.tf            # Computed values & naming
-├── outputs.tf           # Output definitions
-├── providers.tf         # Azure & TFC provider config
-├── azure-pipelines.yml  # CI quality gate pipeline
-├── .tflint.hcl         # Linting rules
-└── README.md           # This file
+â”œâ”€â”€ main.tf              # Primary infrastructure (start here)
+â”œâ”€â”€ variables.tf         # Input variables
+â”œâ”€â”€ locals.tf            # Computed values & naming
+â”œâ”€â”€ outputs.tf           # Output definitions
+â”œâ”€â”€ providers.tf         # Azure & TFC provider config
+â”œâ”€â”€ azure-pipelines.yml  # CI quality gate pipeline
+â”œâ”€â”€ .tflint.hcl         # Linting rules
+â””â”€â”€ README.md           # This file
 ```
 
 ## CI/CD Workflow
 
 ```
-Feature Branch ──► Pull Request ──► Quality Gates ──► Merge ──► TFC Apply
-                        │                 │
-                        │                 ├── terraform fmt
-                        │                 ├── terraform validate  
-                        │                 ├── tflint
-                        │                 └── tfsec
-                        │
-                        └── Requires 1 approval + passing checks
+Feature Branch â”€â”€â–º Pull Request â”€â”€â–º Quality Gates â”€â”€â–º Merge â”€â”€â–º TFC Apply
+                        â”‚                 â”‚
+                        â”‚                 â”œâ”€â”€ terraform fmt
+                        â”‚                 â”œâ”€â”€ terraform validate
+                        â”‚                 â”œâ”€â”€ tflint
+                        â”‚                 â””â”€â”€ tfsec
+                        â”‚
+                        â””â”€â”€ Requires 1 approval + passing checks
 ```
 
 ## Variables
