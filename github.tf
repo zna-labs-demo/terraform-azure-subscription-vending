@@ -4,8 +4,9 @@
 # Creates infrastructure repositories from the template repository.
 # Each vended subscription gets a fully configured starting point.
 #
-# NOTE: README.md and terraform.tfvars.example are provided by the template.
-# We no longer manage these via Terraform to avoid conflicts with branch rules.
+# The template repository provides all necessary files (README, tfvars, etc.)
+# No files are managed by Terraform after initial creation - changes should
+# go through PR process or destroy/recreate from template.
 # =============================================================================
 
 # -----------------------------------------------------------------------------
@@ -36,8 +37,8 @@ resource "github_repository" "app_repo" {
 # -----------------------------------------------------------------------------
 # Repository Ruleset for Main Branch
 # -----------------------------------------------------------------------------
-# Rulesets provide more granular control than branch protection, including
-# the ability to allow admins to bypass via PR only (not direct push).
+# Rulesets enforce PR-based workflow for all users, including admins.
+# Organization admins can bypass via PR only (not direct push) for emergencies.
 # -----------------------------------------------------------------------------
 resource "github_repository_ruleset" "main" {
   for_each = local.subscriptions
@@ -55,19 +56,11 @@ resource "github_repository_ruleset" "main" {
     }
   }
 
-  # Allow organization admins to bypass via PR only (for emergency merges)
+  # Only org admins can bypass, and only via PR (not direct push)
   bypass_actors {
     actor_id    = 1
     actor_type  = "OrganizationAdmin"
     bypass_mode = "pull_request"
-  }
-
-  # Allow repository admins to fully bypass (for automation like TFC)
-  # This enables Terraform to manage repo files during initial setup
-  bypass_actors {
-    actor_id    = 5  # Admin role
-    actor_type  = "RepositoryRole"
-    bypass_mode = "always"
   }
 
   rules {
