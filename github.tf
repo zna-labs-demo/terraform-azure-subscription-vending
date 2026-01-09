@@ -31,6 +31,48 @@ resource "github_repository" "app_repo" {
 }
 
 # -----------------------------------------------------------------------------
+# Branch Protection Rules for Main Branch
+# -----------------------------------------------------------------------------
+resource "github_branch_protection" "main" {
+  for_each = local.subscriptions
+
+  repository_id = github_repository.app_repo[each.key].node_id
+  pattern       = "main"
+
+  # Require pull request before merging
+  required_pull_request_reviews {
+    dismiss_stale_reviews           = true
+    require_code_owner_reviews      = false
+    required_approving_review_count = 1
+    require_last_push_approval      = false
+  }
+
+  # Require status checks to pass before merging
+  required_status_checks {
+    strict   = true
+    contexts = [
+      "QualityGates / TerraformFormat",
+      "QualityGates / TerraformValidate",
+      "QualityGates / TFLint"
+    ]
+  }
+
+  # Enforce rules for administrators too
+  enforce_admins = false
+
+  # Prevent force pushes and branch deletion
+  allows_force_pushes = false
+  allows_deletions    = false
+
+  # Allow specific actors to bypass (optional - for automation)
+  # restrict_pushes {
+  #   push_allowances = []
+  # }
+
+  depends_on = [github_repository.app_repo]
+}
+
+# -----------------------------------------------------------------------------
 # Update README with App-Specific Information
 # -----------------------------------------------------------------------------
 resource "github_repository_file" "app_readme" {
@@ -100,6 +142,16 @@ Then open a Pull Request in GitHub.
 
 ---
 
+## Branch Protection
+
+The `main` branch is protected with the following rules:
+- **Pull Request Required** - No direct commits to main
+- **1 Approval Required** - At least one reviewer must approve
+- **Status Checks Must Pass** - CI pipeline must succeed
+- **No Force Push** - History cannot be rewritten
+
+---
+
 ## Repository Structure
 
 ```
@@ -124,7 +176,7 @@ Feature Branch ──► Pull Request ──► Quality Gates ──► Merge �
                         │                 ├── tflint
                         │                 └── tfsec
                         │
-                        └── Requires 1 approval
+                        └── Requires 1 approval + passing checks
 ```
 
 ## Variables
