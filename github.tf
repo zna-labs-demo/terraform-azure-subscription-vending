@@ -55,12 +55,19 @@ resource "github_repository_ruleset" "main" {
     }
   }
 
-  # Allow organization admins to bypass, but ONLY via pull request
-  # This prevents direct commits while still allowing emergency merges
+  # Allow organization admins to bypass via PR only (for emergency merges)
   bypass_actors {
     actor_id    = 1
     actor_type  = "OrganizationAdmin"
     bypass_mode = "pull_request"
+  }
+
+  # Allow repository admins to fully bypass (for automation like TFC)
+  # This enables Terraform to manage repo files during initial setup
+  bypass_actors {
+    actor_id    = 5  # Admin role
+    actor_type  = "RepositoryRole"
+    bypass_mode = "always"
   }
 
   rules {
