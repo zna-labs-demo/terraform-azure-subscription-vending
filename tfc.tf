@@ -5,6 +5,8 @@
 #   - {app_id}n1d01-app-infra (dev)
 #   - {app_id}n1q01-app-infra (qa)
 #   - {app_id}p1p01-app-infra (prod)
+#
+# CLI-driven workflow - ADO pipeline triggers runs via terraform CLI
 # =============================================================================
 
 # Create TFC workspace for each app+environment combination
@@ -15,18 +17,13 @@ resource "tfe_workspace" "app_workspace" {
   organization = var.tfc_org
   description  = "Infrastructure workspace for ${each.value.app_id} - ${upper(each.value.env_name)} - Owner: ${each.value.owner_email}"
 
-  # VCS settings - connect to the app's GitHub repo
-  vcs_repo {
-    identifier     = "${var.github_org}/terraform-azure-infra-${each.value.app_id}"
-    oauth_token_id = tfe_oauth_client.github.oauth_token_id
-    branch         = "main"
-  }
+  # CLI-driven workspace (no VCS connection)
+  # Runs are triggered by Azure DevOps pipeline using terraform CLI
 
   # Workspace settings
-  auto_apply            = each.value.auto_apply
-  file_triggers_enabled = true
-  queue_all_runs        = false
-  working_directory     = ""
+  auto_apply        = each.value.auto_apply
+  queue_all_runs    = false
+  working_directory = ""
 
   tag_names = [
     "app:${each.value.app_id}",
@@ -40,19 +37,57 @@ resource "tfe_workspace" "app_workspace" {
 }
 
 # =============================================================================
-# Workspace Variables
+# Workspace Variables - Azure Credentials
 # =============================================================================
 
-# Azure Subscription ID (same for all environments of an app)
+# Azure Client ID (Service Principal App ID)
+resource "tfe_variable" "client_id" {
+  for_each = local.app_environments
+
+  key          = "ARM_CLIENT_ID"
+  value        = var.azure_client_id
+  category     = "env"
+  workspace_id = tfe_workspace.app_workspace[each.key].id
+  description  = "Azure Service Principal Client ID"
+}
+
+# Azure Tenant ID
+resource "tfe_variable" "tenant_id" {
+  for_each = local.app_environments
+
+  key          = "ARM_TENANT_ID"
+  value        = var.azure_tenant_id
+  category     = "env"
+  workspace_id = tfe_workspace.app_workspace[each.key].id
+  description  = "Azure Tenant ID"
+}
+
+# Azure Client Secret (sensitive)
+resource "tfe_variable" "client_secret" {
+  for_each = local.app_environments
+
+  key          = "ARM_CLIENT_SECRET"
+  value        = var.azure_client_secret
+  category     = "env"
+  sensitive    = true
+  workspace_id = tfe_workspace.app_workspace[each.key].id
+  description  = "Azure Service Principal Client Secret"
+}
+
+# Azure Subscription ID
 resource "tfe_variable" "subscription_id" {
   for_each = local.app_environments
 
   key          = "ARM_SUBSCRIPTION_ID"
-  value        = each.value.subscription_id
+  value        = var.azure_subscription_id
   category     = "env"
   workspace_id = tfe_workspace.app_workspace[each.key].id
   description  = "Azure Subscription ID"
 }
+
+# =============================================================================
+# Workspace Variables - Terraform Variables
+# =============================================================================
 
 # Application ID
 resource "tfe_variable" "app_id" {
