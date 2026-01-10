@@ -24,6 +24,7 @@ resource "tfe_workspace" "app_workspace" {
   auto_apply        = each.value.auto_apply
   queue_all_runs    = false
   working_directory = ""
+  force_delete      = true  # Allow deletion even if workspace has resources
 
   tag_names = [
     "app:${each.value.app_id}",
