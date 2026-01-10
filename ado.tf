@@ -43,8 +43,8 @@ resource "azuredevops_build_definition" "app_pipeline" {
   }
 
   # Enable PR triggers for GitHub repos (YAML pr: triggers don't work by default)
+  # Using override block to explicitly configure PR triggers instead of YAML
   pull_request_trigger {
-    use_yaml       = false # Override YAML - use settings defined here
     initial_branch = "main"
 
     forks {
