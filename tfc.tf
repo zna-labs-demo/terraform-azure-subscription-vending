@@ -106,7 +106,7 @@ resource "tfe_variable" "environment" {
   for_each = local.app_environments
 
   key          = "environment"
-  value        = each.value.env_name == "qa" ? "staging" : each.value.env_name
+  value        = each.value.env_name
   category     = "terraform"
   workspace_id = tfe_workspace.app_workspace[each.key].id
   description  = "Environment name"
