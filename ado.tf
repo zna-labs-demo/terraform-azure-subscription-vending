@@ -2,7 +2,7 @@
 resource "azuredevops_project" "app_project" {
   for_each = local.subscriptions
 
-  name               = "${each.key}"
+  name               = each.key
   description        = "DevOps project for ${each.key} - Owner: ${each.value.owner_email}"
   visibility         = "private"
   version_control    = "Git"
@@ -40,6 +40,24 @@ resource "azuredevops_build_definition" "app_pipeline" {
 
   ci_trigger {
     use_yaml = true
+  }
+
+  # Enable PR triggers for GitHub repos (YAML pr: triggers don't work by default)
+  pull_request_trigger {
+    use_yaml       = false # Override YAML - use settings defined here
+    initial_branch = "main"
+
+    forks {
+      enabled       = false
+      share_secrets = false
+    }
+
+    override {
+      auto_cancel = true
+      branch_filter {
+        include = ["main"]
+      }
+    }
   }
 
   repository {
