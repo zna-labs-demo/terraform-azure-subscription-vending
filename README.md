@@ -25,7 +25,7 @@ This repository implements a GitOps-based subscription vending pattern for Zuric
 3. Terraform Cloud detects the change and runs this workspace
 4. For each entry in the JSON, Terraform creates:
    - **GitHub Repository**: `terraform-azure-infra-{app_id}`
-   - **TFC Workspace**: `{app_id}n1d01-app-infra`
+   - **TFC Workspace**: `{app_id}n1d01`
    - **ADO Project**: `{app_id}n1` with pipeline
 
 ## Files
@@ -63,7 +63,7 @@ This repository implements a GitOps-based subscription vending pattern for Zuric
 | Resource | Pattern | Example |
 |----------|---------|---------|
 | GitHub Repo | `terraform-azure-infra-{app_id}` | `terraform-azure-infra-a99999` |
-| TFC Workspace | `{app_id}n1d01-app-infra` | `a99999n1d01-app-infra` |
+| TFC Workspace | `{app_id}n1d01` | `a99999n1d01` |
 | ADO Project | `{app_id}n1` | `a99999n1` |
 
 ## Required Variables

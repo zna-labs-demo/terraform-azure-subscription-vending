@@ -2,9 +2,9 @@
 # TFC Workspaces - Multi-Environment (Dev, QA, Prod)
 # =============================================================================
 # Creates 3 workspaces per app for progressive deployment:
-#   - {app_id}n1d01-app-infra (dev)
-#   - {app_id}n1q01-app-infra (qa)
-#   - {app_id}p1p01-app-infra (prod)
+#   - {app_id}n1d01 (dev)
+#   - {app_id}n1q01 (qa)
+#   - {app_id}p1p01 (prod)
 #
 # CLI-driven workflow - ADO pipeline triggers runs via terraform CLI
 # =============================================================================

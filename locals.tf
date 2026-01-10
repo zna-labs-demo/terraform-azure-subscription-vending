@@ -30,7 +30,6 @@ locals {
   }
 
   # Create a flattened map of all app+environment combinations
-  # Key format: "app_id-env" (e.g., "a2026010904-dev")
   app_environments = {
     for pair in flatten([
       for app_id, app in local.subscriptions : [
@@ -44,8 +43,7 @@ locals {
           auto_apply       = env.auto_apply
           subscription_id  = app.subscription_id
           owner_email      = app.owner_email
-          # Workspace name: a2026010904n1d01-app-infra
-          workspace_name   = "${app_id}${env.tier}1${env.environment_code}${env.sequence}-app-infra"
+          workspace_name   = "${app_id}${env.tier}1${env.environment_code}${env.sequence}"
         }
       ]
     ]) : pair.key => pair
